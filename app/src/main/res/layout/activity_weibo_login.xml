@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_weibo_login"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.kankan.qwwlogindemo.weibologin.WeiboLoginActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/weiboLogin"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Weibo Login"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/weiboLogout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Weibo Logout"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/wechatPage"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="WeChat page"
+            android:textAllCaps="false" />
+    </LinearLayout>
+
+</RelativeLayout>

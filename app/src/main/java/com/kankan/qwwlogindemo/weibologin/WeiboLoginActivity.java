@@ -3,15 +3,27 @@ package com.kankan.qwwlogindemo.weibologin;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.util.Log;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.jakewharton.rxbinding.view.RxView;
 import com.kankan.qwwlogindemo.R;
+import com.kankan.qwwlogindemo.util.ImageManager;
+import com.kankan.qwwlogindemo.wxapi.WXEntryActivity;
 import com.sina.weibo.sdk.auth.AuthInfo;
 import com.sina.weibo.sdk.auth.Oauth2AccessToken;
 import com.sina.weibo.sdk.auth.WeiboAuthListener;
 import com.sina.weibo.sdk.auth.sso.SsoHandler;
 import com.sina.weibo.sdk.exception.WeiboException;
+import com.sina.weibo.sdk.net.RequestListener;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.text.SimpleDateFormat;
 
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
@@ -22,6 +34,8 @@ public class WeiboLoginActivity extends AppCompatActivity {
     private AuthInfo mAuthInfo;
     private Oauth2AccessToken mAccessToken;
     private SsoHandler mSsoHandler;
+    private TextView mToken, mWeiboJsonData, mUserInfo;
+    private ImageView mAvatar, mAvatar_large;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,7 +49,11 @@ public class WeiboLoginActivity extends AppCompatActivity {
     }
 
     private void initView() {
-
+        mToken = (TextView) this.findViewById(R.id.tokenInfo);
+        mWeiboJsonData = (TextView) this.findViewById(R.id.weiboJsonData);
+        mAvatar = (ImageView) this.findViewById(R.id.weiboAvatar);
+        mUserInfo = (TextView) this.findViewById(R.id.weiboUserInfo);
+        mAvatar_large = (ImageView) this.findViewById(R.id.weiboAvatar_large);
     }
 
     private void initWeiboLogin() {
@@ -67,38 +85,114 @@ public class WeiboLoginActivity extends AppCompatActivity {
     }
 
     private void doWeiboLogout() {
-
+        Toast.makeText(this, "注销登录操作", Toast.LENGTH_SHORT).show();
+        mAuthInfo = null;
+        mSsoHandler = null;
+        mAccessToken = null;
+        mToken.setText("");
+        mWeiboJsonData.setText("");
+        mUserInfo.setText("");
+        mAvatar.setImageBitmap(null);
+        mAvatar_large.setImageBitmap(null);
     }
 
     private void initWechatPage() {
-
+        RxView.clicks(findViewById(R.id.wechatPage))
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<Void>() {
+                    @Override
+                    public void call(Void aVoid) {
+                        WeiboLoginActivity.this.startActivity(
+                                new Intent(WeiboLoginActivity.this, WXEntryActivity.class));
+                    }
+                });
     }
 
     class AuthListener implements WeiboAuthListener {
 
         @Override
-        public void onComplete(Bundle bundle) {
+        public void onComplete(Bundle values) {
             //从Bundle中解析Token
-            mAccessToken = Oauth2AccessToken.parseAccessToken(bundle);
+            mAccessToken = Oauth2AccessToken.parseAccessToken(values);
+            //从这里获取用户输入的电话号码信息
+            String phoneNum = mAccessToken.getPhoneNum();
+            String uid = mAccessToken.getUid();
+            String token = mAccessToken.getToken();
             if (mAccessToken.isSessionValid()) {
-                //保存Token到Sharepreference
+                //显示Token
+                updateTokenView(false);
+                mToken.setText("token:" + token + ",uid:" + uid + ",phoneNum:" + phoneNum);
+
+                //保存Token到SharedPreferences
+                AccessTokenKeeper.writeAccessToken(WeiboLoginActivity.this, mAccessToken);
+                Toast.makeText(WeiboLoginActivity.this,
+                        R.string.weibosdk_demo_toast_auth_success, Toast.LENGTH_SHORT).show();
+
+                requestUserInfo(mAccessToken);
 
             } else {
-                //当注册的应用程序签名不正确时，就会收到Code
-                Object code = bundle.getString("code", "");
-                //收到码进行处理
-
+                // 以下几种情况，您会收到 Code：
+                // 1. 当您未在平台上注册的应用程序的包名与签名时；
+                // 2. 当您注册的应用程序包名与签名不正确时；
+                // 3. 当您在平台上注册的包名和签名与您当前测试的应用的包名和签名不匹配时。
+                String code = values.getString("code");
+                String message = getString(R.string.weibosdk_demo_toast_auth_failed);
+                if (!TextUtils.isEmpty(code)) {
+                    message = message + "\nObtained the code: " + code;
+                }
+                Toast.makeText(WeiboLoginActivity.this, message, Toast.LENGTH_LONG).show();
             }
         }
 
         @Override
-        public void onWeiboException(WeiboException e) {
-            Log.e(TAG, "onWeiboException():" + e.getMessage());
+        public void onCancel() {
+            Toast.makeText(WeiboLoginActivity.this,
+                    R.string.weibosdk_demo_toast_auth_canceled, Toast.LENGTH_LONG).show();
         }
 
         @Override
-        public void onCancel() {
-            Log.e(TAG, "onCancel()");
+        public void onWeiboException(WeiboException e) {
+            Toast.makeText(WeiboLoginActivity.this,
+                    "Auth exception : " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /**
+     * 请求微博用户信息
+     *
+     * @param accessToken
+     */
+    private void requestUserInfo(Oauth2AccessToken accessToken) {
+        UsersAPI usersAPI = new UsersAPI(this, Contants.APP_KEY, accessToken);
+        String uidString = accessToken.getUid();
+        Long uid = Long.decode(uidString);
+        usersAPI.show(uid, new RequestListener() {
+            @Override
+            public void onComplete(String s) {
+                mWeiboJsonData.setText(s);
+                parseJsonData(s);
+            }
+
+            @Override
+            public void onWeiboException(WeiboException e) {
+                Log.e(TAG, e.getMessage());
+                Toast.makeText(WeiboLoginActivity.this, "获取失败" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void parseJsonData(String s) {
+        try {
+            JSONObject root = new JSONObject(s);
+            String id = root.getString("id");
+            String name = root.getString("name");
+            String profile_image_url = root.getString("profile_image_url");
+            String avatar_large = root.getString("avatar_large");
+            mUserInfo.setText(id + "," + name);
+            ImageManager.get().loadUrlIntoImageView(this, profile_image_url, mAvatar);
+            ImageManager.get().loadUrlIntoImageView(this, avatar_large, mAvatar_large);
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
     }
 
@@ -108,5 +202,18 @@ public class WeiboLoginActivity extends AppCompatActivity {
         if (mSsoHandler != null) {
             mSsoHandler.authorizeCallBack(requestCode, resultCode, data);
         }
+    }
+
+    private void updateTokenView(boolean hasExisted) {
+        String date = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(
+                new java.util.Date(mAccessToken.getExpiresTime()));
+        String format = getString(R.string.weibosdk_demo_token_to_string_format_1);
+        //mTokenText.setText(String.format(format, mAccessToken.getToken(), date));
+
+        String message = String.format(format, mAccessToken.getToken(), date);
+        if (hasExisted) {
+            message = getString(R.string.weibosdk_demo_token_has_existed) + "\n" + message;
+        }
+        // mTokenText.setText(message);
     }
 }

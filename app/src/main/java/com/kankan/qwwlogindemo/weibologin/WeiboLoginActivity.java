@@ -23,8 +23,6 @@ import com.sina.weibo.sdk.net.RequestListener;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.text.SimpleDateFormat;
-
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 
@@ -34,7 +32,7 @@ public class WeiboLoginActivity extends AppCompatActivity {
     private AuthInfo mAuthInfo;
     private Oauth2AccessToken mAccessToken;
     private SsoHandler mSsoHandler;
-    private TextView mToken, mWeiboJsonData, mUserInfo;
+    private TextView mToken, mWeiboJsonData, mUserInfo, mWeiboNickname;
     private ImageView mAvatar, mAvatar_large;
 
     @Override
@@ -54,6 +52,7 @@ public class WeiboLoginActivity extends AppCompatActivity {
         mAvatar = (ImageView) this.findViewById(R.id.weiboAvatar);
         mUserInfo = (TextView) this.findViewById(R.id.weiboUserInfo);
         mAvatar_large = (ImageView) this.findViewById(R.id.weiboAvatar_large);
+        mWeiboNickname = (TextView) this.findViewById(R.id.weiboNickname);
     }
 
     private void initWeiboLogin() {
@@ -108,6 +107,9 @@ public class WeiboLoginActivity extends AppCompatActivity {
                 });
     }
 
+    /**
+     * 主要的授权监听类，在此类里面直接可以获取用户的信息
+     */
     class AuthListener implements WeiboAuthListener {
 
         @Override
@@ -119,17 +121,12 @@ public class WeiboLoginActivity extends AppCompatActivity {
             String uid = mAccessToken.getUid();
             String token = mAccessToken.getToken();
             if (mAccessToken.isSessionValid()) {
-                //显示Token
-                updateTokenView(false);
                 mToken.setText("token:" + token + ",uid:" + uid + ",phoneNum:" + phoneNum);
-
                 //保存Token到SharedPreferences
                 AccessTokenKeeper.writeAccessToken(WeiboLoginActivity.this, mAccessToken);
-                Toast.makeText(WeiboLoginActivity.this,
-                        R.string.weibosdk_demo_toast_auth_success, Toast.LENGTH_SHORT).show();
-
+                Toast.makeText(WeiboLoginActivity.this, R.string.weibosdk_demo_toast_auth_success, Toast.LENGTH_SHORT).show();
+                //请求用户信息
                 requestUserInfo(mAccessToken);
-
             } else {
                 // 以下几种情况，您会收到 Code：
                 // 1. 当您未在平台上注册的应用程序的包名与签名时；
@@ -146,14 +143,12 @@ public class WeiboLoginActivity extends AppCompatActivity {
 
         @Override
         public void onCancel() {
-            Toast.makeText(WeiboLoginActivity.this,
-                    R.string.weibosdk_demo_toast_auth_canceled, Toast.LENGTH_LONG).show();
+            Toast.makeText(WeiboLoginActivity.this, R.string.weibosdk_demo_toast_auth_canceled, Toast.LENGTH_LONG).show();
         }
 
         @Override
         public void onWeiboException(WeiboException e) {
-            Toast.makeText(WeiboLoginActivity.this,
-                    "Auth exception : " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Toast.makeText(WeiboLoginActivity.this, "Auth exception : " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -181,6 +176,11 @@ public class WeiboLoginActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 解析得到的用户信息json数据
+     *
+     * @param s
+     */
     private void parseJsonData(String s) {
         try {
             JSONObject root = new JSONObject(s);
@@ -191,6 +191,7 @@ public class WeiboLoginActivity extends AppCompatActivity {
             mUserInfo.setText(id + "," + name);
             ImageManager.get().loadUrlIntoImageView(this, profile_image_url, mAvatar);
             ImageManager.get().loadUrlIntoImageView(this, avatar_large, mAvatar_large);
+            mWeiboNickname.setText(name);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -202,18 +203,5 @@ public class WeiboLoginActivity extends AppCompatActivity {
         if (mSsoHandler != null) {
             mSsoHandler.authorizeCallBack(requestCode, resultCode, data);
         }
-    }
-
-    private void updateTokenView(boolean hasExisted) {
-        String date = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(
-                new java.util.Date(mAccessToken.getExpiresTime()));
-        String format = getString(R.string.weibosdk_demo_token_to_string_format_1);
-        //mTokenText.setText(String.format(format, mAccessToken.getToken(), date));
-
-        String message = String.format(format, mAccessToken.getToken(), date);
-        if (hasExisted) {
-            message = getString(R.string.weibosdk_demo_token_has_existed) + "\n" + message;
-        }
-        // mTokenText.setText(message);
     }
 }

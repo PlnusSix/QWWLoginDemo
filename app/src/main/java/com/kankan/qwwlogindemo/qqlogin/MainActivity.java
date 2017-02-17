@@ -10,10 +10,10 @@ import android.widget.Toast;
 
 import com.jakewharton.rxbinding.view.RxView;
 import com.kankan.qwwlogindemo.R;
-import com.kankan.qwwlogindemo.weibologin.WeiboLoginActivity;
 import com.kankan.qwwlogindemo.util.ImageManager;
 import com.kankan.qwwlogindemo.util.RxBus;
 import com.kankan.qwwlogindemo.util.RxBusEvent;
+import com.kankan.qwwlogindemo.weibologin.WeiboLoginActivity;
 import com.tencent.connect.UserInfo;
 import com.tencent.tauth.IUiListener;
 import com.tencent.tauth.Tencent;
@@ -60,7 +60,6 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void call(Void aVoid) {
                         doQQLogin();
-                        Toast.makeText(MainActivity.this, "已登录", Toast.LENGTH_SHORT).show();
                     }
                 });
     }

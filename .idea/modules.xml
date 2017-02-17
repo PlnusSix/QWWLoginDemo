@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/QWWLoginDemo.iml" filepath="$PROJECT_DIR$/QWWLoginDemo.iml" />
+      <module fileurl="file://$PROJECT_DIR$/QWWLOginDemoNew.iml" filepath="$PROJECT_DIR$/QWWLOginDemoNew.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
     </modules>
   </component>

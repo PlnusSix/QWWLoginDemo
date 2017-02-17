@@ -5,11 +5,11 @@ import android.support.v7.app.AppCompatActivity;
 
 import com.kankan.qwwlogindemo.R;
 
-public class WeChatLoginActivity extends AppCompatActivity {
+public class WechatLoginActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_we_chat_login);
+        setContentView(R.layout.activity_wechat_login);
     }
 }

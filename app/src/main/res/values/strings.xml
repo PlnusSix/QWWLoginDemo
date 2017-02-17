@@ -185,4 +185,5 @@
     <string name="weibosdk_demo_launch_poi_page">POI页面</string>
     <string name="weibosdk_demo_launch_mblog_detail">查看微博正文</string>
     <string name="weibosdk_demo_launch_qrcode">扫描二维码界面</string>
+    <string name="suggestion">所以微信就算应用通过了，要通过开发者资质还是要钱啊！</string>
 </resources>
